@@ -10,8 +10,8 @@ android {
         applicationId = "com.service.indraprasthagas"
         minSdk = 24
         targetSdk = 35
-        versionCode = 171
-        versionName = "1.7.1.00"
+        versionCode = 190
+        versionName = "1.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {

@@ -46,8 +46,8 @@ public class ApiUpdater {
                         storageHelper.saveString("api_url", api_url);
                         storageHelper.saveString("socket_url", socket_url);
 
-//                        Log.i(h.TAG, "API URL saved: " + api_url);
-//                        Log.i(h.TAG, "Socket URL saved: " + socket_url);
+                        Log.i(h.TAG, "API URL saved: " + api_url);
+                        Log.i(h.TAG, "Socket URL saved: " + socket_url);
 
                         // 4. Return the result via the callback interface
                         callback.onApiPointsUpdated(api_url, socket_url); // 👈 SUCCESS!

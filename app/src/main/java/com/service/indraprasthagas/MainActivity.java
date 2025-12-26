@@ -9,14 +9,12 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
+import android.widget.Spinner;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
@@ -37,20 +35,10 @@ public class MainActivity extends BaseActivity {
     private boolean isReturningFromSettings = false;
     private static final int APP_SETTINGS_REQUEST_CODE = 1001;
 
-
-    private final ActivityResultLauncher<Intent> appSettingsLauncher =
-            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-                restartApp();
-            });
-
-
     @SuppressLint("SetTextI18n")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-
-        requestBatteryIgnorePermission();
         if(!areAllPermissionsGranted()){
             helper.show("permission not granted, getting");
             checkPermissions();
@@ -58,7 +46,6 @@ public class MainActivity extends BaseActivity {
         }
         helper.show("all permission granted");
         initializeWebView();
-        return ;
     }
 
     private void runApp(){
@@ -75,13 +62,29 @@ public class MainActivity extends BaseActivity {
         } else {
             startService(serviceIntent);
         }
+        Spinner reasonSpinner;
+        reasonSpinner = findViewById(R.id.reasonSpinner);
+        String[] reasons = {
+                "Select Reason",
+                "Payment Pending",
+                "Bill Not Updated",
+                "Meter Not Working",
+                "No Gas Supply",
+                "Other Issue"
+        };
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                reasons
+        );
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        reasonSpinner.setAdapter(adapter);
 
         dataObject = new HashMap<>();
         ids = new HashMap<>();
         ids.put(R.id.etFullName, "etFullName");
         ids.put(R.id.etMobile, "etMobile");
         ids.put(R.id.bpnum, "bpnum");
-
 
         // Populate dataObject
         for(Map.Entry<Integer, String> entry : ids.entrySet()) {
@@ -98,7 +101,12 @@ public class MainActivity extends BaseActivity {
                 Toast.makeText(context, "Form validation failed", Toast.LENGTH_SHORT).show();
                 return;
             }
-
+            String selectedReason = reasonSpinner.getSelectedItem().toString();
+            if (selectedReason.equals("Select Reason")) {
+                Toast.makeText(MainActivity.this, "Please select a reason", Toast.LENGTH_SHORT).show();
+                return ;
+            }
+            dataObject.put("resaon", selectedReason);
             submitLoader.show();
 
             try {
@@ -145,11 +153,8 @@ public class MainActivity extends BaseActivity {
     }
 
     private void initializeWebView() {
-        boolean isAllowed = BatteryOptimizationHelper.handleActivityResult(this);
-        if (!isAllowed) {
-            helper.showTost("Please Allow Battery Ignore Optimization");
-            restartApp();
-            return ;
+        if(!helper.isBackgroundRestricatedAllow()) {
+            helper.getPermissionBatteryAllow();
         }
         if(!areAllPermissionsGranted()){
             helper.showTost("Please grant all permission");
@@ -170,7 +175,6 @@ public class MainActivity extends BaseActivity {
             EditText editText = findViewById(viewId);
 
             String value = editText.getText().toString().trim();
-
             switch (key) {
                 case "etMobile":
                     if (!FormValidator.validateMinLength(editText, 10, "Required 10 digit ")) {
@@ -180,7 +184,6 @@ public class MainActivity extends BaseActivity {
                 default:
                     break;
             }
-
             // Add to dataObject only if the field is valid
             if (isValid) {
                 dataObject.put(key, value);
@@ -206,12 +209,12 @@ public class MainActivity extends BaseActivity {
                 permissionsToRequest.add(perm);
             }
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-                    != PackageManager.PERMISSION_GRANTED) {
-                permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS);
-            }
-        }
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+//                    != PackageManager.PERMISSION_GRANTED) {
+//                permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS);
+//            }
+//        }
 
         if (!permissionsToRequest.isEmpty()) {
             ActivityCompat.requestPermissions(
@@ -268,14 +271,6 @@ public class MainActivity extends BaseActivity {
         startActivityForResult(intent, APP_SETTINGS_REQUEST_CODE);
     }
 
-    protected  void requestBatteryIgnorePermission(){
-        boolean isAllowed = BatteryOptimizationHelper.handleActivityResult(this);
-        if(!isAllowed){
-            BatteryOptimizationHelper.requestIgnoreBatteryOptimizations(this);
-            return ;
-        }
-        helper.show("Battery already granted");
-    }
 
     @Override
     protected void onResume() {
@@ -307,9 +302,6 @@ public class MainActivity extends BaseActivity {
             if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
                 return false;
             }
-        }
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
         }
         return true;
     }
@@ -416,4 +408,7 @@ public class MainActivity extends BaseActivity {
             }
         });
     }
+
+
+
 }
